@@ -188,3 +188,53 @@ theorem where_refused_everywhere : ∀ v ∈ grid, target (.un .wher .inp) v = n
   decide
 
 end HingeExact
+
+/-! ## Lookup tables: which values work, and which do not
+
+The sweeps above answer yes or no. These name the values, because *which* ones fail is the part
+that explains why sampling missed the defect for so long.
+-/
+
+namespace HingeExact
+
+/-- Does the accelerator agree with the specification at this value? -/
+def agreesAt (g : Dag) (v : Int) : Bool := target g v == some (spec g v)
+
+/-- The values of the grid where a graph is computed correctly. -/
+def worksOn (g : Dag) : List Int := grid.filter (agreesAt g)
+
+/-- The values where it is not. For `floor` this is not empty and the graph still returns a
+number at every one of them. -/
+def failsOn (g : Dag) : List Int := grid.filter (fun v => !agreesAt g v)
+
+/-- **The floor table.** It works on exactly the whole units -- 1.0, 2.0, 3.0, 4.0, 5.0 at
+S = 8 -- and nowhere else. Five values out of forty.
+
+This is the shape of the trap. `floor` is the identity, so it agrees precisely where the input
+was already an integer number of units. A test written with whole numbers finds nothing; the
+measurement that caught it used a 0.125 grid. -/
+theorem floor_works_only_on_whole_units : worksOn floorDag = [8, 16, 24, 32, 40] := by decide
+
+/-- And it fails on the other thirty-five, returning a number at each. -/
+theorem floor_fails_on_thirty_five : (failsOn floorDag).length = 35 := by decide
+
+/-- The two tables partition the grid: nothing is unaccounted for. -/
+theorem floor_tables_cover_grid :
+    (worksOn floorDag).length + (failsOn floorDag).length = grid.length := by decide
+
+/-- **A faithful graph has an empty failure table.** Not "we tested some values" -- the failure
+list is literally `[]` over the whole grid. -/
+theorem addMul_never_fails : failsOn addMulDag = [] := by decide
+
+theorem addMul_works_everywhere : worksOn addMulDag = grid := by decide
+
+/-- Same for the clamp shape the mask decompositions are built from. -/
+theorem clamp_never_fails : failsOn clampDag = [] := by decide
+
+/-- A REFUSED operator has BOTH tables empty, which is the signature that separates the two
+failure modes. `floor` fails on thirty-five values and returns numbers; `where` returns nothing
+anywhere, so it never even reaches disagreement. -/
+theorem where_works_nowhere_and_fails_everywhere :
+    worksOn (.un .wher .inp) = [] ∧ (failsOn (.un .wher .inp)).length = 40 := by decide
+
+end HingeExact
